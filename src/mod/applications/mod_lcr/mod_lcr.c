@@ -46,6 +46,9 @@
 #define LCR_HEADERS_CID 5
 #define LCR_HEADERS_LIMIT 6
 
+#define BUFSIZE 1024
+#define STR_MAX_SIZE 512
+
 static char headers[LCR_HEADERS_COUNT][32] = {
 	"Digit Match",
 	"Carrier",
@@ -100,17 +103,22 @@ typedef lcr_obj_t *lcr_route;
 typedef struct max_obj max_obj_t;
 typedef max_obj_t *max_len;
 
+#define SWITCH_MAX_CUSTOM_SQL 20
+
 struct profile_obj {
 	char *name;
 	uint16_t id;
 	char *order_by;
-	char *custom_sql;
+	char *custom_sql[SWITCH_MAX_CUSTOM_SQL];
+	char *custom_odbc[SWITCH_MAX_CUSTOM_SQL];
+	char *sql_purpose[SWITCH_MAX_CUSTOM_SQL];
+	uint32_t custom_sql_count;
 	char *export_fields_str;
 	int export_fields_cnt;
 	char **export_fields;
 	char *limit_type;
-	switch_bool_t custom_sql_has_percent;
-	switch_bool_t custom_sql_has_vars;
+	switch_bool_t custom_sql_has_percent[SWITCH_MAX_CUSTOM_SQL];
+	switch_bool_t custom_sql_has_vars[SWITCH_MAX_CUSTOM_SQL];
 	switch_bool_t profile_has_intrastate;
 	switch_bool_t profile_has_intralata;
 	switch_bool_t profile_has_npanxx;
@@ -122,6 +130,106 @@ struct profile_obj {
 	switch_bool_t enable_sip_redir;
 };
 typedef struct profile_obj profile_t;
+
+struct temp_obj {
+	char lcr_carrier_id[STR_MAX_SIZE];
+	char lcr_gw_carrier_id[STR_MAX_SIZE];
+	char lcr_carrier_gateway_id[STR_MAX_SIZE];
+	char lcr_digits[STR_MAX_SIZE];
+	char lcr_rate_field[STR_MAX_SIZE];
+	char lcr_lead_strip[STR_MAX_SIZE];
+	char lcr_trail_strip[STR_MAX_SIZE];
+	char lcr_prefix[STR_MAX_SIZE];
+	char lcr_suffix[STR_MAX_SIZE];
+	char lcr_cid[STR_MAX_SIZE];
+	char nibble_rate[STR_MAX_SIZE];
+	char nibble_increment[STR_MAX_SIZE];
+	char lcr_carrier_peer[STR_MAX_SIZE];
+	char lcr_gw_prefix[STR_MAX_SIZE];
+	char lcr_gw_suffix[STR_MAX_SIZE];
+	char lcr_codec[STR_MAX_SIZE];
+	char lcr_limit_id[STR_MAX_SIZE];
+	char lcr_limit_max[STR_MAX_SIZE];
+	char carrier_gateway_channels_limit[STR_MAX_SIZE];
+};
+typedef struct temp_obj temp_t;
+
+struct last_obj
+{
+	char nibble_account[STR_MAX_SIZE];
+	char account_rate_override[STR_MAX_SIZE];
+	char account_rate_cap[STR_MAX_SIZE];
+	char account_markup[STR_MAX_SIZE];
+	char lowbal_amt[STR_MAX_SIZE];
+	char nobal_amt[STR_MAX_SIZE];
+	char depth[STR_MAX_SIZE];
+	char lcr_limit_realm[STR_MAX_SIZE];
+	char carrier_id[STR_MAX_SIZE];
+	char lcr_gw_carrier_id[STR_MAX_SIZE];
+	char lcr_carrier_gateway_id[STR_MAX_SIZE];
+	char lcr_digits[STR_MAX_SIZE];
+	char lcr_rate_field[STR_MAX_SIZE];
+	char lcr_lead_strip[STR_MAX_SIZE];
+	char lcr_trail_strip[STR_MAX_SIZE];
+	char lcr_prefix[STR_MAX_SIZE];
+	char lcr_suffix[STR_MAX_SIZE];
+	char lcr_cid[STR_MAX_SIZE];
+	char nibble_rate[STR_MAX_SIZE];
+	char nibble_increment[STR_MAX_SIZE];
+	char lcr_carrier_peer[STR_MAX_SIZE];
+	char lcr_gw_prefix[STR_MAX_SIZE];
+	char lcr_gw_suffix[STR_MAX_SIZE];
+	char lcr_codec[STR_MAX_SIZE];
+	char lcr_limit_id[STR_MAX_SIZE];
+	char lcr_limit_max[STR_MAX_SIZE];
+	char carrier_gateway_channels_limit[STR_MAX_SIZE];
+	char lcr_carrier_name[STR_MAX_SIZE];
+};
+typedef struct last_obj last_t;
+
+struct carrier_obj
+{
+	char lcr_carrier_name[STR_MAX_SIZE];
+	char lcr_limit_realm[STR_MAX_SIZE];
+	char carrier_id[STR_MAX_SIZE];
+};
+typedef struct carrier_obj carrier_t;
+
+struct gateway_limit_obj
+{
+	char lcr_carrier_gateway_id[STR_MAX_SIZE];
+	char carrier_gateway_channels[STR_MAX_SIZE];
+};
+typedef struct gateway_limit_obj gateway_limit_t;
+
+struct rate_obj
+{
+	char lcr_digits[STR_MAX_SIZE];
+	char lcr_rate_field[STR_MAX_SIZE];
+	char lcr_lead_strip[STR_MAX_SIZE];
+	char lcr_trail_strip[STR_MAX_SIZE];
+	char lcr_prefix[STR_MAX_SIZE];
+	char lcr_suffix[STR_MAX_SIZE];
+	char lcr_cid[STR_MAX_SIZE];
+	char nibble_rate[STR_MAX_SIZE];
+	char nibble_increment[STR_MAX_SIZE];
+	char lcr_carrier_id[STR_MAX_SIZE];
+};
+typedef struct rate_obj rate_t;
+
+struct gateway_obj
+{
+	char lcr_gw_carrier_id[STR_MAX_SIZE];
+	char lcr_carrier_gateway_id[STR_MAX_SIZE];
+	char lcr_carrier_peer[STR_MAX_SIZE];
+	char lcr_gw_prefix[STR_MAX_SIZE];
+	char lcr_gw_suffix[STR_MAX_SIZE];
+	char lcr_codec[STR_MAX_SIZE];
+	char lcr_limit_id[STR_MAX_SIZE];
+	char lcr_limit_max[STR_MAX_SIZE];
+	char carrier_gateway_channels_limit[STR_MAX_SIZE];
+};
+typedef struct gateway_obj gateway_t;
 
 struct callback_obj {
 	lcr_route head;
@@ -137,6 +245,37 @@ struct callback_obj {
 	switch_core_session_t *session;
 	switch_event_t *event;
 	float max_rate;
+	char nibble_account[STR_MAX_SIZE];
+	char account_rate_override[STR_MAX_SIZE];
+	char account_rate_cap[STR_MAX_SIZE];
+	char account_markup[STR_MAX_SIZE];
+	char lowbal_amt[STR_MAX_SIZE];
+	char nobal_amt[STR_MAX_SIZE];
+	char depth[STR_MAX_SIZE];
+	int account_channel_out_limit;
+	int enabled_carrier_ids[BUFSIZE];
+	int enalbed_carriers_count;
+	int lcr_carrier_ids[BUFSIZE];
+	int lcr_carrier_id_count;
+//	int carrier_gateway_channels;
+	int rate_values_count;
+	char **rate_table_columns;
+	char **rate_table_values;
+	int first_values_count;
+	char **first_table_columns;
+	char **first_table_values;
+	carrier_t *carriers;
+	rate_t *rates;
+	gateway_t *gateways;
+	gateway_limit_t *gateway_limits;
+	temp_t *temp_datas;
+	last_t *last_data;
+	int carriers_count;
+	int rates_count;
+	int gateways_count;
+	int gateway_limit_count;
+	int temp_datas_count;
+	int last_datas_count;
 };
 typedef struct callback_obj callback_t;
 
@@ -161,6 +300,13 @@ static void lcr_destroy(lcr_route route)
 		switch_event_destroy(&route->fields);
 		route=route->next;
 	}
+}
+
+static char* concat(const char *s1, const char *s2)
+{
+	char *result = NULL;
+	asprintf(&result, "%s%s", s1, s2);
+	return result;
 }
 
 static const char *do_cid(switch_memory_pool_t *pool, const char *cid, const char *number, switch_core_session_t *session)
@@ -438,7 +584,7 @@ static switch_status_t process_max_lengths(max_obj_t *maxes, lcr_route routes, c
 		}
 
 		if (current->limit_realm && current->limit_id) {
-			this_len = strlen(current->limit_realm) + strlen(current->limit_id) + 5;
+			this_len = strlen(current->limit_realm) + strlen(current->limit_id) + 10;
 			if (this_len > maxes->limit) {
 				maxes->limit = this_len;
 			}
@@ -447,15 +593,16 @@ static switch_status_t process_max_lengths(max_obj_t *maxes, lcr_route routes, c
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_cache_db_handle_t *lcr_get_db_handle(void)
+static switch_cache_db_handle_t *lcr_get_db_handle(char *odbc_dsn)
 {
 	switch_cache_db_handle_t *dbh = NULL;
 	char *dsn;
 
-	if (!zstr(globals.odbc_dsn)) {
+	if (!zstr(odbc_dsn)) {
+		dsn = odbc_dsn;
+	}
+	else {
 		dsn = globals.odbc_dsn;
-	} else {
-		dsn = globals.dbname;
 	}
 
 	if (switch_cache_db_get_db_handle_dsn(&dbh, dsn) != SWITCH_STATUS_SUCCESS) {
@@ -465,14 +612,17 @@ static switch_cache_db_handle_t *lcr_get_db_handle(void)
 	return dbh;
 }
 
-static switch_bool_t db_check(char *sql)
+static switch_bool_t db_check(char *sql, char *dsn)
 {
 	switch_bool_t ret = SWITCH_FALSE;
 	switch_cache_db_handle_t *dbh = NULL;
 
-	if (globals.odbc_dsn && (dbh = lcr_get_db_handle())) {
-		if (switch_cache_db_execute_sql(dbh, sql, NULL) == SWITCH_STATUS_SUCCESS) {
-			ret = SWITCH_TRUE;
+	if (!zstr(dsn)) {
+		dbh = lcr_get_db_handle(dsn);
+		if (dbh) {
+			if (switch_cache_db_execute_sql(dbh, sql, NULL) == SWITCH_STATUS_SUCCESS) {
+				ret = SWITCH_TRUE;
+			}
 		}
 	}
 
@@ -481,17 +631,18 @@ static switch_bool_t db_check(char *sql)
 }
 
 /* try each type of random until we suceed */
-static switch_bool_t set_db_random()
+static switch_bool_t set_db_random(char *dsn)
 {
-	if (db_check("SELECT rand();") == SWITCH_TRUE) {
-		db_random = "rand()";
-		return SWITCH_TRUE;
+	if (!zstr(dsn)) {
+		if (db_check("SELECT rand();", dsn) == SWITCH_TRUE) {
+			db_random = "rand()";
+			return SWITCH_TRUE;
+		}
+		if (db_check("SELECT random();", dsn) == SWITCH_TRUE) {
+			db_random = "random()";
+			return SWITCH_TRUE;
+		}
 	}
-	if (db_check("SELECT random();") == SWITCH_TRUE) {
-		db_random = "random()";
-		return SWITCH_TRUE;
-	}
-
 	return SWITCH_FALSE;
 }
 
@@ -555,19 +706,19 @@ static char *expand_digits(switch_memory_pool_t *pool, char *digits, switch_bool
 }
 
 /* format the custom sql */
-static char *format_custom_sql(const char *custom_sql, callback_t *cb_struct, const char *digits)
+static char *format_custom_sql(const char *custom_sql, callback_t *cb_struct, const char *digits, int index)
 {
 	char *replace = NULL;
 	switch_channel_t *channel;
 
 	/* first replace %s with digits to maintain backward compat */
-	if (cb_struct->profile->custom_sql_has_percent == SWITCH_TRUE) {
+	if (cb_struct->profile->custom_sql_has_percent[index] == SWITCH_TRUE) {
 		replace = switch_string_replace(custom_sql, "%q", digits);
 		custom_sql = replace;
 	}
 
 	/* expand the vars */
-	if (cb_struct->profile->custom_sql_has_vars == SWITCH_TRUE) {
+	if (cb_struct->profile->custom_sql_has_vars[index] == SWITCH_TRUE) {
 		if (cb_struct->session) {
 			channel = switch_core_session_get_channel(cb_struct->session);
 			switch_assert(channel);
@@ -590,12 +741,12 @@ static char *format_custom_sql(const char *custom_sql, callback_t *cb_struct, co
 	return (char *) custom_sql;
 }
 
-static switch_status_t lcr_execute_sql_callback(char *sql, switch_core_db_callback_func_t callback, void *pdata)
+static switch_status_t lcr_execute_sql_callback(char *sql, switch_core_db_callback_func_t callback, void *pdata, char *dsn)
 {
 	switch_status_t retval = SWITCH_STATUS_GENERR;
 	switch_cache_db_handle_t *dbh = NULL;
 
-	if (globals.odbc_dsn && (dbh = lcr_get_db_handle())) {
+	if (dsn && (dbh = lcr_get_db_handle(dsn))) {
 		if (switch_cache_db_execute_sql_callback(dbh, sql, callback, pdata, NULL) != SWITCH_STATUS_SUCCESS) {
 			retval = SWITCH_STATUS_GENERR;
 		} else {
@@ -633,6 +784,7 @@ static int route_add_callback(void *pArg, int argc, char **argv, char **columnNa
 	switch_event_create(&additional->fields, SWITCH_EVENT_REQUEST_PARAMS);
 
 	for (i = 0; i < argc ; i++) {
+//		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "route_add_callback params -> columnName : %s, value : %s, number : %d\n", columnNames[i], argv[i], i);
 		if (CF("lcr_digits")) {
 			additional->digit_len = strlen(argv[i]);
 			additional->digit_str = switch_core_strdup(pool, switch_str_nil(argv[i]));
@@ -827,6 +979,517 @@ static int route_add_callback(void *pArg, int argc, char **argv, char **columnNa
 
 }
 
+static int route_add_callback_from_data(callback_t *cbt, last_t last_obj)
+{
+	lcr_route additional = NULL;
+	lcr_route current = NULL;
+	//callback_t *cbt = (callback_t *)pArg;
+	char *key = NULL;
+	char *key2 = NULL;
+	int r = 0;
+	char *data = NULL;
+	switch_bool_t lcr_skipped = SWITCH_TRUE; /* assume we'll throw it away, paranoid about leak */
+
+	switch_memory_pool_t *pool = cbt->pool;
+
+	additional = switch_core_alloc(pool, sizeof(lcr_obj_t));
+
+	if (!additional) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error allocating in route_add_callback\n");
+		goto end;
+	}
+
+	switch_event_create(&additional->fields, SWITCH_EVENT_REQUEST_PARAMS);
+
+	additional->digit_len = strlen(last_obj.lcr_digits);
+	additional->digit_str = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_digits));
+	additional->prefix = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_prefix));
+	additional->suffix = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_suffix));
+	additional->carrier_name = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_carrier_name));
+	if (!(last_obj.lcr_rate_field) || zstr(last_obj.lcr_rate_field)) {
+		/* maybe we want to consider saying which carriers have null rate fields... maybe they can run the query and find out */
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "rate field is null, skipping\n");
+		/* kill prev/next pointers */
+		/* additional->prev = NULL; */
+		goto end;
+	}
+	additional->rate = (float)atof(switch_str_nil(last_obj.lcr_rate_field));
+	additional->rate_str = switch_core_sprintf(pool, "%0.5f", additional->rate);
+	additional->gw_prefix = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_gw_prefix));
+	additional->gw_suffix = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_gw_suffix));
+	additional->lstrip = atoi(switch_str_nil(last_obj.lcr_lead_strip));
+	additional->tstrip = atoi(switch_str_nil(last_obj.lcr_trail_strip));
+	additional->codec = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_codec));
+	additional->cid = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_cid));
+	//else if (CF("lcr_user_rate")) {
+	//	additional->user_rate = (float)atof(switch_str_nil(last_obj.lcr_user));
+	//	additional->user_rate_str = switch_core_sprintf(pool, "%0.5f", additional->user_rate);
+	//}
+	additional->limit_realm = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_limit_realm));
+	additional->limit_id = switch_core_strdup(pool, switch_str_nil(last_obj.lcr_limit_id));
+	additional->limit_max = (int)(float)atof(switch_str_nil(last_obj.lcr_limit_max));
+
+	/* add all fields to the fields event */
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "nibble_account", last_obj.nibble_account);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "account_rate_override", last_obj.account_rate_override);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "account_rate_cap", last_obj.account_rate_cap);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "account_markup", last_obj.account_markup);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lowbal_amt", last_obj.lowbal_amt);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "nobal_amt", last_obj.nobal_amt);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "depth", last_obj.depth);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_limit_realm", last_obj.lcr_limit_realm);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "carrier_id", last_obj.carrier_id);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_gw_carrier_id", last_obj.lcr_gw_carrier_id);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_carrier_gateway_id", last_obj.lcr_carrier_gateway_id);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_digits", last_obj.lcr_digits);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_rate_field", last_obj.lcr_rate_field);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_lead_strip", last_obj.lcr_lead_strip);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_trail_strip", last_obj.lcr_trail_strip);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_prefix", last_obj.lcr_prefix);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_suffix", last_obj.lcr_suffix);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_cid", last_obj.lcr_cid);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "nibble_rate", last_obj.nibble_rate);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "nibble_increment", last_obj.nibble_increment);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_carrier_peer", last_obj.lcr_carrier_peer);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_gw_prefix", last_obj.lcr_gw_prefix);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_gw_suffix", last_obj.lcr_gw_suffix);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_codec", last_obj.lcr_codec);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_limit_id", last_obj.lcr_limit_id);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_limit_max", last_obj.lcr_limit_max);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "carrier_gateway_channels_limit", last_obj.carrier_gateway_channels_limit);
+	switch_event_add_header_string(additional->fields, SWITCH_STACK_BOTTOM, "lcr_carrier_name", last_obj.lcr_carrier_name);
+
+	cbt->matches++;
+
+	additional->dialstring = get_bridge_data(pool, cbt->lookup_number, cbt->cid, additional, cbt->profile, cbt->session, data);
+
+	if (cbt->head == NULL) {
+		if (cbt->max_rate && (cbt->max_rate < additional->rate)) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "Skipping [%s] because [%f] is higher than the max_rate of [%f]\n",
+				additional->carrier_name, additional->rate, cbt->max_rate);
+			lcr_skipped = SWITCH_FALSE;
+			r = 0; goto end;
+		}
+		key = switch_core_sprintf(pool, "%s:%s", additional->gw_prefix, additional->gw_suffix);
+		if (cbt->profile->single_bridge) {
+			key2 = switch_core_sprintf(pool, "%s", additional->carrier_name);
+		}
+		additional->next = cbt->head;
+		cbt->head = additional;
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Adding %s to head of list\n", additional->carrier_name);
+		if (switch_core_hash_insert(cbt->dedup_hash, key, additional) != SWITCH_STATUS_SUCCESS) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+			r = -1; goto end;
+		}
+		if (cbt->profile->single_bridge) {
+			if (switch_core_hash_insert(cbt->dedup_hash, key2, additional) != SWITCH_STATUS_SUCCESS) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+				r = -1; goto end;
+			}
+		}
+		lcr_skipped = SWITCH_FALSE;
+		r = 0; goto end;
+	}
+
+
+	for (current = cbt->head; current; current = current->next) {
+		if (cbt->max_rate && (cbt->max_rate < additional->rate)) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "Skipping [%s] because [%f] is higher than the max_rate of [%f]\n",
+				additional->carrier_name, additional->rate, cbt->max_rate);
+			break;
+		}
+
+		key = switch_core_sprintf(pool, "%s:%s", additional->gw_prefix, additional->gw_suffix);
+		if (switch_core_hash_find(cbt->dedup_hash, key)) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG,
+				"Ignoring Duplicate route for termination point (%s)\n",
+				key);
+			break;
+		}
+
+		if (cbt->profile->single_bridge) {
+			key2 = switch_core_sprintf(pool, "%s", additional->carrier_name);
+			if (switch_core_hash_find(cbt->dedup_hash, key2)) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG,
+					"Ignoring duplicate carrier gateway for single bridge. (%s)\n",
+					key2);
+				break;
+			}
+		}
+
+		if (!cbt->profile->reorder_by_rate) {
+			/* use db order */
+			if (current->next == NULL) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Adding %s to end of list\n", additional->carrier_name);
+				current->next = additional;
+				additional->prev = current;
+				if (switch_core_hash_insert(cbt->dedup_hash, key, additional) != SWITCH_STATUS_SUCCESS) {
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+					r = -1; goto end;
+				}
+				if (cbt->profile->single_bridge) {
+					if (switch_core_hash_insert(cbt->dedup_hash, key2, additional) != SWITCH_STATUS_SUCCESS) {
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+						r = -1; goto end;
+					}
+				}
+				lcr_skipped = SWITCH_FALSE;
+				break;
+			}
+		}
+		else {
+			if (current->rate > additional->rate) {
+				/* insert myself here */
+				if (current->prev != NULL) {
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Adding %s before %s\n",
+						additional->carrier_name, current->carrier_name);
+					current->prev->next = additional;
+				}
+				else {
+					/* put this one at the head */
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Inserting %s to list head before %s\n",
+						additional->carrier_name, current->carrier_name);
+					cbt->head = additional;
+				}
+				additional->next = current;
+				current->prev = additional;
+				if (switch_core_hash_insert(cbt->dedup_hash, key, additional) != SWITCH_STATUS_SUCCESS) {
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+					r = -1; goto end;
+				}
+				if (cbt->profile->single_bridge) {
+					if (switch_core_hash_insert(cbt->dedup_hash, key2, additional) != SWITCH_STATUS_SUCCESS) {
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+						r = -1; goto end;
+					}
+				}
+				lcr_skipped = SWITCH_FALSE;
+				break;
+			}
+			else if (current->next == NULL) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "adding %s to end of list after %s\n",
+					additional->carrier_name, current->carrier_name);
+				current->next = additional;
+				additional->prev = current;
+				if (switch_core_hash_insert(cbt->dedup_hash, key, additional) != SWITCH_STATUS_SUCCESS) {
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+					r = -1; goto end;
+				}
+				if (cbt->profile->single_bridge) {
+					if (switch_core_hash_insert(cbt->dedup_hash, key2, additional) != SWITCH_STATUS_SUCCESS) {
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error inserting into dedup hash\n");
+						r = -1; goto end;
+					}
+				}
+				lcr_skipped = SWITCH_FALSE;
+				break;
+			}
+		}
+	}
+
+end:
+
+	/* lcr was not added to any lists, so destroy lcr object here */
+	if (lcr_skipped == SWITCH_TRUE) {
+		/* complain loudly if we're asked to destroy a route that is
+		added to the route list */
+		if (additional && additional->prev != NULL) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+				"additional->prev != NULL\n");
+		}
+		if (current && current->next == additional) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+				"current->next == additional\n");
+		}
+		lcr_destroy(additional);
+	}
+
+	switch_safe_free(data);
+
+	return r;
+
+}
+
+static int accounts_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	int i = 0;
+	callback_t *cbt = (callback_t *) pArg;
+	switch_channel_t *channel;
+
+	 for ( i = 0; i < argc; i++){
+ 		if(argv[i]){
+			if (cbt->session) {
+				if ((channel = switch_core_session_get_channel(cbt->session))) {
+					switch_channel_set_variable_var_check(channel, columnNames[i], argv[i], SWITCH_FALSE);
+				}
+			}
+			if (cbt->event) {
+				switch_event_add_header_string(cbt->event, SWITCH_STACK_BOTTOM, columnNames[i], argv[i]);
+			}
+
+			if (!strcasecmp(columnNames[i], "account_channel_out_limit")){
+				cbt->account_channel_out_limit =atoi(argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "nibble_account")){
+				strcpy(cbt->nibble_account, argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "account_rate_override")){
+				strcpy(cbt->account_rate_override, argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "account_rate_cap")){
+				strcpy(cbt->account_rate_cap, argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "account_markup")){
+				strcpy(cbt->account_markup, argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "lowbal_amt")){
+				strcpy(cbt->lowbal_amt, argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "nobal_amt")){
+				strcpy(cbt->nobal_amt, argv[i]);
+			}
+			else if(!strcasecmp(columnNames[i], "depth")){
+				strcpy(cbt->depth, argv[i]);
+			}
+		}		
+	}	
+	return 0;
+}
+
+static int account_rate_plans_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	switch_channel_t *channel;
+	callback_t *cbt = (callback_t *) pArg;
+
+	if(argv[0]){
+		if (cbt->session) {
+			if ((channel = switch_core_session_get_channel(cbt->session))) {
+				switch_channel_set_variable_var_check(channel, columnNames[0], argv[0], SWITCH_FALSE);
+			}
+		}
+		if (cbt->event) {
+			switch_event_add_header_string(cbt->event, SWITCH_STACK_BOTTOM, columnNames[0], argv[0]);
+		}
+	}
+		
+	return 0;
+}
+
+static int account_limits_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	int r = 0;
+	callback_t *cbt = (callback_t *) pArg;
+	if(cbt->account_channel_out_limit && argv[0]){
+		if (cbt->account_channel_out_limit < atoi(argv[0])){
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "error : account_channel_out_limit < account_out_channels.\n");
+			r = -1;
+		}
+	}
+	else{
+		r = -1;
+	}
+	
+	return r;
+}
+
+static int carriers_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	int i = 0;
+	int r = 0;	
+	callback_t *cbt = (callback_t *) pArg;
+	int count = cbt->carriers_count;
+
+	for (i = 0; i < argc; i++) {
+		if (argv[i]) {
+			if (!strcasecmp(columnNames[i], "lcr_carrier_name")) {
+				strcpy(cbt->carriers[count].lcr_carrier_name, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_limit_realm")) {
+				strcpy(cbt->carriers[count].lcr_limit_realm, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "carrier_id")) {
+				strcpy(cbt->carriers[count].carrier_id, argv[i]);
+			}
+		}
+	}
+	count = count + 1;
+	cbt->carriers_count = count;
+	
+	//create enabled_carrier_ids.
+ 	for(i = 0; i < argc ; i++){
+		if(!strcasecmp(columnNames[i], "carrier_id")){
+			if(argv[i]){
+				cbt->enabled_carrier_ids[cbt->enalbed_carriers_count] = atoi(argv[i]);
+				cbt->enalbed_carriers_count++;
+			}
+		}
+	}
+  
+	return r;
+}
+
+static int one_result_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	switch_channel_t *channel;
+	callback_t *cbt = (callback_t *) pArg;
+
+	if(argv[0]){
+		if (cbt->session) {
+			if ((channel = switch_core_session_get_channel(cbt->session))) {
+				switch_channel_set_variable_var_check(channel, columnNames[0], argv[0], SWITCH_FALSE);
+			}
+		}
+		if (cbt->event) {
+			switch_event_add_header_string(cbt->event, SWITCH_STACK_BOTTOM, columnNames[0], argv[0]);
+		}
+	}
+		
+	return 0;
+}
+
+static int gateway_limits_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	callback_t *cbt = (callback_t *) pArg;
+	int i = 0;
+
+//	if(argv[0]){
+//		 cbt->carrier_gateway_channels = atoi(argv[0]);
+////		 switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "added gateway_limits data : %d\n", cbt->carrier_gateway_channels);
+//	}
+
+	int count = cbt->gateway_limit_count;
+	for (i = 0; i < argc; i++) {
+		if (argv[i]) {
+			if (!strcasecmp(columnNames[i], "lcr_carrier_gateway_id")) {
+				strcpy(cbt->gateway_limits[count].lcr_carrier_gateway_id, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "carrier_gateway_channels")) {
+				strcpy(cbt->gateway_limits[count].carrier_gateway_channels, argv[i]);
+			}
+		}
+	}
+	count++;
+	cbt->gateway_limit_count = count;
+	return 0;
+}
+
+static int rates_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	int i = 0;
+	int r = 0;	
+	callback_t *cbt = (callback_t *) pArg;
+	int count = cbt->rates_count;
+
+	for (i = 0; i < argc; i++) {
+		if (argv[i]) {
+//			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "rate query result : %s,  =   %s\n", columnNames[i], argv[i]);
+			if (!strcasecmp(columnNames[i], "lcr_digits")) {
+				strcpy(cbt->rates[count].lcr_digits, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_rate_field")) {
+				strcpy(cbt->rates[count].lcr_rate_field, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_lead_strip")) {
+				strcpy(cbt->rates[count].lcr_lead_strip, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_trail_strip")) {
+				strcpy(cbt->rates[count].lcr_trail_strip, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_prefix")) {
+				strcpy(cbt->rates[count].lcr_prefix, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_suffix")) {
+				strcpy(cbt->rates[count].lcr_suffix, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_cid")) {
+				strcpy(cbt->rates[count].lcr_cid, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "nibble_rate")) {
+				strcpy(cbt->rates[count].nibble_rate, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "nibble_increment")) {
+				strcpy(cbt->rates[count].nibble_increment, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_carrier_id")) {
+				strcpy(cbt->rates[count].lcr_carrier_id, argv[i]);
+			}
+		}
+	}
+	count++;
+	cbt->rates_count = count;
+	
+	//create enabled_carrier_ids.
+ 	for(i = 0; i < argc ; i++){
+		if(!strcasecmp(columnNames[i], "lcr_carrier_id")){
+			if(argv[i]){
+				cbt->lcr_carrier_ids[cbt->lcr_carrier_id_count] = atoi(argv[i]);
+				cbt->lcr_carrier_id_count++;
+			}
+		}
+	}
+  
+	return r;
+}
+
+static int gateways_add_callback(void *pArg, int argc, char **argv, char **columnNames)
+{
+	int i = 0;
+	int r = 0;	
+	callback_t *cbt = (callback_t *) pArg;
+//	switch_channel_t *channel;
+
+	int count = cbt->gateways_count;
+
+	for (i = 0; i < argc; i++) {
+		if (argv[i]) {
+			if (!strcasecmp(columnNames[i], "lcr_gw_carrier_id")) {
+				strcpy(cbt->gateways[count].lcr_gw_carrier_id, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_carrier_gateway_id")) {
+				strcpy(cbt->gateways[count].lcr_carrier_gateway_id, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_carrier_peer")) {
+				strcpy(cbt->gateways[count].lcr_carrier_peer, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_gw_prefix")) {
+				strcpy(cbt->gateways[count].lcr_gw_prefix, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_gw_suffix")) {
+				strcpy(cbt->gateways[count].lcr_gw_suffix, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_codec")) {
+				strcpy(cbt->gateways[count].lcr_codec, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_limit_id")) {
+				strcpy(cbt->gateways[count].lcr_limit_id, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "lcr_limit_max")) {
+				strcpy(cbt->gateways[count].lcr_limit_max, argv[i]);
+			}
+			else if (!strcasecmp(columnNames[i], "carrier_gateway_channels_limit")) {
+				strcpy(cbt->gateways[count].carrier_gateway_channels_limit, argv[i]);
+			}
+		}
+	}
+	count++;
+	cbt->gateways_count = count;
+
+	//for (i = 0; i < argc; i++){
+	//	if(argv[i] && !strcasecmp(columnNames[i], "lcr_carrier_gateway_id") ){
+	//		if (cbt->session) {
+	//			if ((channel = switch_core_session_get_channel(cbt->session))) {
+	//				switch_channel_set_variable_var_check(channel, columnNames[i], argv[i], SWITCH_FALSE);
+	//			}
+	//		}
+	//		if (cbt->event) {
+	//			switch_event_add_header_string(cbt->event, SWITCH_STACK_BOTTOM, columnNames[i], argv[i]);
+	//		}
+	//	}
+	//}
+	//
+	return r;
+}
+
 static int intrastatelata_callback(void *pArg, int argc, char **argv, char **columnNames)
 {
 	int count = 0;
@@ -888,7 +1551,7 @@ static switch_status_t is_intrastatelata(callback_t *cb_struct)
 
 	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(cb_struct->session), SWITCH_LOG_DEBUG, "SQL: %s\n", sql);
 
-	return(lcr_execute_sql_callback(sql, intrastatelata_callback, cb_struct));
+	return(lcr_execute_sql_callback(sql, intrastatelata_callback, cb_struct, globals.odbc_dsn));
 
 }
 
@@ -900,13 +1563,27 @@ static switch_status_t lcr_do_lookup(callback_t *cb_struct)
 	char *digits_expanded = NULL;
 	char *lrn_digits_expanded = NULL;
 	profile_t *profile = cb_struct->profile;
-	switch_status_t lookup_status;
+	switch_status_t lookup_status = SWITCH_STATUS_SUCCESS;
 	switch_channel_t *channel;
 	char *id_str;
-	char *safe_sql = NULL;
+	char *safe_sql[SWITCH_MAX_CUSTOM_SQL];	
 	char *rate_field = NULL;
 	char *user_rate_field = NULL;
+	char *enabled_carrier_ids = NULL;
+	char *temp_carrier_id = NULL;
+	char *lcr_carrier_ids = NULL;
+	int i = 0;
+	int j = 0;
+	int k = 0;
+	int count = 0;
+	int status = 0;
+//	char *tmp = NULL;
+	
+	for ( i = 0; i < SWITCH_MAX_CUSTOM_SQL; i++) {
+		safe_sql[i] = NULL;
 
+	}
+	
 	switch_assert(cb_struct->lookup_number != NULL);
 
 	digits_copy = string_digitsonly(cb_struct->pool, digits);
@@ -982,24 +1659,326 @@ static switch_status_t lcr_do_lookup(callback_t *cb_struct)
 
 	/* set up the query to be executed */
 	/* format the custom_sql */
-	safe_sql = format_custom_sql(profile->custom_sql, cb_struct, digits_copy);
-	if (!safe_sql) {
-		switch_core_hash_destroy(&cb_struct->dedup_hash);
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(cb_struct->session), SWITCH_LOG_ERROR, "Unable to format SQL\n");
-		return SWITCH_STATUS_GENERR;
+	for ( i = 0; i < profile->custom_sql_count; i++)
+	{
+		safe_sql[i] = format_custom_sql(profile->custom_sql[i], cb_struct, digits_copy, i);
+		if (!safe_sql[i]) {
+			switch_core_hash_destroy(&cb_struct->dedup_hash);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(cb_struct->session), SWITCH_LOG_ERROR, "Unable to format SQL\n");
+			return SWITCH_STATUS_GENERR;
+		}
+		SWITCH_STANDARD_STREAM(sql_stream);
+		sql_stream.write_function(&sql_stream, safe_sql[i]);
+		if (safe_sql[i] != profile->custom_sql[i]) {
+			/* channel_expand_variables returned the same string to us, no need to free */
+			switch_safe_free(safe_sql[i]);
+		}
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(cb_struct->session), SWITCH_LOG_DEBUG, "SQL: %s\n", (char *)sql_stream.data);
+
+
+		if(!strcasecmp(profile->sql_purpose[i], "accounts")){
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, accounts_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "account_rate_plans")){
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, account_rate_plans_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "account_limits")){
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, account_limits_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "carriers")){
+			cb_struct->enalbed_carriers_count = 0;
+			cb_struct->carriers_count = 0;
+			cb_struct->carriers = (carrier_t *)malloc(BUFSIZE * sizeof(*cb_struct->carriers));
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, carriers_add_callback, cb_struct, profile->custom_odbc[i]); 
+			enabled_carrier_ids = malloc(2);
+			strcpy(enabled_carrier_ids, "0");
+			for (j = 0; j < cb_struct->enalbed_carriers_count; j++)
+			{
+				char *t = enabled_carrier_ids;
+				enabled_carrier_ids = concat(enabled_carrier_ids, ", ");
+				free(t);
+				temp_carrier_id = (char *)malloc(100);
+				sprintf(temp_carrier_id, "%d", cb_struct->enabled_carrier_ids[j]);
+				t = enabled_carrier_ids;
+				enabled_carrier_ids = concat(enabled_carrier_ids, temp_carrier_id);
+				free(t);
+				switch_safe_free(temp_carrier_id);
+			}
+			
+			if (cb_struct->session) {
+				if ((channel = switch_core_session_get_channel(cb_struct->session))) {
+					switch_channel_set_variable_var_check(channel, "enabled_carrier_ids", enabled_carrier_ids, SWITCH_FALSE);
+				}
+			}
+			if (cb_struct->event) {
+				switch_event_add_header_string(cb_struct->event, SWITCH_STACK_BOTTOM, "enabled_carrier_ids", enabled_carrier_ids);
+			}
+			free(enabled_carrier_ids);
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "rate_blocks")){
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, one_result_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "rate_limits")){
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, one_result_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "rates")){
+			cb_struct->lcr_carrier_id_count = 0;
+			cb_struct->rates_count = 0;
+			cb_struct->rates = (rate_t *)malloc(BUFSIZE * sizeof(*cb_struct->rates));
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, rates_add_callback, cb_struct, profile->custom_odbc[i]); 
+			lcr_carrier_ids = malloc(2);
+			strcpy(lcr_carrier_ids, "0");
+			for (j = 0; j < cb_struct->lcr_carrier_id_count; j++)
+			{
+				char *t = lcr_carrier_ids;
+				lcr_carrier_ids = concat(lcr_carrier_ids, ", ");
+				free(t);
+				temp_carrier_id = (char *)malloc(100);
+				sprintf(temp_carrier_id, "%d", cb_struct->lcr_carrier_ids[j]);
+				t = lcr_carrier_ids;
+				lcr_carrier_ids = concat(lcr_carrier_ids, temp_carrier_id);
+				free(t);
+				switch_safe_free(temp_carrier_id);
+			}
+
+			if (cb_struct->session) {
+				if ((channel = switch_core_session_get_channel(cb_struct->session))) {
+					switch_channel_set_variable_var_check(channel, "lcr_carrier_ids", lcr_carrier_ids, SWITCH_FALSE);
+				}
+			}
+			if (cb_struct->event) {
+				switch_event_add_header_string(cb_struct->event, SWITCH_STACK_BOTTOM, "lcr_carrier_ids", lcr_carrier_ids);
+			}
+			free(lcr_carrier_ids);
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "gateways")){
+			cb_struct->gateways_count = 0;
+			cb_struct->gateways = (gateway_t *)malloc(BUFSIZE * sizeof(*cb_struct->gateways));
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, gateways_add_callback, cb_struct, profile->custom_odbc[i]); 
+			lcr_carrier_ids = malloc(15);
+			strcpy(lcr_carrier_ids, "SELECT 0 AS id");
+			for (j = 0; j < cb_struct->gateways_count; j++)
+			{
+				char *t = lcr_carrier_ids;
+				lcr_carrier_ids = concat(lcr_carrier_ids, " UNION SELECT ");
+				free(t);
+				temp_carrier_id = (char *)malloc(100);
+				sprintf(temp_carrier_id, "%s", cb_struct->gateways[j].lcr_carrier_gateway_id);
+				t = lcr_carrier_ids;
+				lcr_carrier_ids = concat(lcr_carrier_ids, temp_carrier_id);
+				free(t);
+				switch_safe_free(temp_carrier_id);
+			}
+
+			if (cb_struct->session) {
+				if ((channel = switch_core_session_get_channel(cb_struct->session))) {
+					switch_channel_set_variable_var_check(channel, "lcr_carrier_gateway_ids", lcr_carrier_ids, SWITCH_FALSE);
+				}
+			}
+			if (cb_struct->event) {
+				switch_event_add_header_string(cb_struct->event, SWITCH_STACK_BOTTOM, "lcr_carrier_gateway_ids", lcr_carrier_ids);
+			}
+			free(lcr_carrier_ids);
+		}
+		else if (!strcasecmp(profile->sql_purpose[i], "gateway_limits")){
+			cb_struct->gateway_limit_count = 0;
+			cb_struct->gateway_limits = (gateway_limit_t *)malloc(BUFSIZE * sizeof(*cb_struct->gateway_limits));
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, gateway_limits_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+		else {
+			lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, route_add_callback, cb_struct, profile->custom_odbc[i]); 
+		}
+
+		switch_safe_free(sql_stream.data);
+		
+		if (lookup_status == SWITCH_STATUS_GENERR) {
+			break;
+		}
 	}
-	SWITCH_STANDARD_STREAM(sql_stream);
-	sql_stream.write_function(&sql_stream, safe_sql);
-	if (safe_sql != profile->custom_sql) {
-		/* channel_expand_variables returned the same string to us, no need to free */
-		switch_safe_free(safe_sql);
+	
+	if(profile->custom_sql_count > 1){
+		cb_struct->temp_datas_count = 0;
+		cb_struct->temp_datas = (temp_t *)malloc(BUFSIZE * sizeof(*cb_struct->temp_datas));
+		for (j = 0; j < cb_struct->rates_count; j++) {
+			for (i = 0; i < cb_struct->gateways_count; i++) {
+				for(k = 0; k < cb_struct->gateway_limit_count; k++){
+					if(!strcasecmp(cb_struct->gateways[i].lcr_carrier_gateway_id, cb_struct->gateway_limits[k].lcr_carrier_gateway_id)){
+						if ((!strcasecmp(cb_struct->gateways[i].lcr_gw_carrier_id, cb_struct->rates[j].lcr_carrier_id)) && (atoi(cb_struct->gateways[i].carrier_gateway_channels_limit) > atoi(cb_struct->gateway_limits[k].carrier_gateway_channels))) {
+							count = cb_struct->temp_datas_count;
+							if (cb_struct->rates[j].lcr_carrier_id) {
+								strcpy(cb_struct->temp_datas[count].lcr_carrier_id, cb_struct->rates[j].lcr_carrier_id);
+							}
+							if (cb_struct->gateways[i].lcr_gw_carrier_id) {
+								strcpy(cb_struct->temp_datas[count].lcr_gw_carrier_id, cb_struct->gateways[i].lcr_gw_carrier_id);
+							}
+							if (cb_struct->gateways[i].lcr_carrier_gateway_id) {
+								strcpy(cb_struct->temp_datas[count].lcr_carrier_gateway_id, cb_struct->gateways[i].lcr_carrier_gateway_id);
+							}
+							if (cb_struct->rates[j].lcr_digits) {
+								strcpy(cb_struct->temp_datas[count].lcr_digits, cb_struct->rates[j].lcr_digits);
+							}
+							if (cb_struct->rates[j].lcr_rate_field) {
+								strcpy(cb_struct->temp_datas[count].lcr_rate_field, cb_struct->rates[j].lcr_rate_field);
+							}
+							if (cb_struct->rates[j].lcr_lead_strip) {
+								strcpy(cb_struct->temp_datas[count].lcr_lead_strip, cb_struct->rates[j].lcr_lead_strip);
+							}
+							if (cb_struct->rates[j].lcr_trail_strip) {
+								strcpy(cb_struct->temp_datas[count].lcr_trail_strip, cb_struct->rates[j].lcr_trail_strip);
+							}
+							if (cb_struct->rates[j].lcr_prefix) {
+								strcpy(cb_struct->temp_datas[count].lcr_prefix, cb_struct->rates[j].lcr_prefix);
+							}
+							if (cb_struct->rates[j].lcr_suffix) {
+								strcpy(cb_struct->temp_datas[count].lcr_suffix, cb_struct->rates[j].lcr_suffix);
+							}
+							if (cb_struct->rates[j].lcr_cid) {
+								strcpy(cb_struct->temp_datas[count].lcr_cid, cb_struct->rates[j].lcr_cid);
+							}
+							if (cb_struct->rates[j].nibble_rate) {
+								strcpy(cb_struct->temp_datas[count].nibble_rate, cb_struct->rates[j].nibble_rate);
+							}
+							if (cb_struct->rates[j].nibble_increment) {
+								strcpy(cb_struct->temp_datas[count].nibble_increment, cb_struct->rates[j].nibble_increment);
+							}
+							if (cb_struct->gateways[i].lcr_carrier_peer) {
+								strcpy(cb_struct->temp_datas[count].lcr_carrier_peer, cb_struct->gateways[i].lcr_carrier_peer);
+							}
+							if (cb_struct->gateways[i].lcr_gw_prefix) {
+								strcpy(cb_struct->temp_datas[count].lcr_gw_prefix, cb_struct->gateways[i].lcr_gw_prefix);
+							}
+							if (cb_struct->gateways[i].lcr_gw_suffix) {
+								strcpy(cb_struct->temp_datas[count].lcr_gw_suffix, cb_struct->gateways[i].lcr_gw_suffix);
+							}
+							if (cb_struct->gateways[i].lcr_codec) {
+								strcpy(cb_struct->temp_datas[count].lcr_codec, cb_struct->gateways[i].lcr_codec);
+							}
+							if (cb_struct->gateways[i].lcr_limit_id) {
+								strcpy(cb_struct->temp_datas[count].lcr_limit_id, cb_struct->gateways[i].lcr_limit_id);
+							}
+							if (cb_struct->gateways[i].lcr_limit_max) {
+								strcpy(cb_struct->temp_datas[count].lcr_limit_max, cb_struct->gateways[i].lcr_limit_max);
+							}
+							if (cb_struct->gateways[i].carrier_gateway_channels_limit) {
+								strcpy(cb_struct->temp_datas[count].carrier_gateway_channels_limit, cb_struct->gateways[i].carrier_gateway_channels_limit);
+							}
+							count++;
+							cb_struct->temp_datas_count = count;
+						}
+					}
+				}
+			}
+		}
+		cb_struct->last_datas_count = 0;
+		cb_struct->last_data = (last_t *)malloc(BUFSIZE * sizeof(*cb_struct->last_data));
+		for (j = 0; j < cb_struct->temp_datas_count; j++) {
+			for (i = 0; i < cb_struct->carriers_count; i++) {
+				if (!strcasecmp(cb_struct->carriers[i].carrier_id, cb_struct->temp_datas[j].lcr_carrier_id)) {
+					count = cb_struct->last_datas_count;
+					if (cb_struct->nibble_account) {
+						strcpy(cb_struct->last_data[count].nibble_account, cb_struct->nibble_account);
+					}
+					if (cb_struct->account_rate_override) {
+						strcpy(cb_struct->last_data[count].account_rate_override, cb_struct->account_rate_override);
+					}
+					if (cb_struct->account_rate_cap) {
+						strcpy(cb_struct->last_data[count].account_rate_cap, cb_struct->account_rate_cap);
+					}
+					if (cb_struct->account_markup) {
+						strcpy(cb_struct->last_data[count].account_markup, cb_struct->account_markup);
+					}
+					//if (cb_struct->account_channel_out_limit) {
+					//}
+					if (cb_struct->lowbal_amt) {
+						strcpy(cb_struct->last_data[count].lowbal_amt, cb_struct->lowbal_amt);
+					}
+					if (cb_struct->nobal_amt) {
+						strcpy(cb_struct->last_data[count].nobal_amt, cb_struct->nobal_amt);
+					}
+					if (cb_struct->depth) {
+						strcpy(cb_struct->last_data[count].depth, cb_struct->depth);
+					}
+					if (cb_struct->carriers[i].lcr_limit_realm) {
+						strcpy(cb_struct->last_data[count].lcr_limit_realm, cb_struct->carriers[i].lcr_limit_realm);
+					}
+					if (cb_struct->carriers[i].carrier_id) {
+						strcpy(cb_struct->last_data[count].carrier_id, cb_struct->carriers[i].carrier_id);
+					}
+					if (cb_struct->temp_datas[j].lcr_gw_carrier_id) {
+						strcpy(cb_struct->last_data[count].lcr_gw_carrier_id, cb_struct->temp_datas[j].lcr_gw_carrier_id);
+					}
+					if (cb_struct->temp_datas[j].lcr_carrier_gateway_id) {
+						strcpy(cb_struct->last_data[count].lcr_carrier_gateway_id, cb_struct->temp_datas[j].lcr_carrier_gateway_id);
+					}
+					if (cb_struct->temp_datas[j].lcr_digits) {
+						strcpy(cb_struct->last_data[count].lcr_digits, cb_struct->temp_datas[j].lcr_digits);
+					}
+					if (cb_struct->temp_datas[j].lcr_rate_field) {
+						strcpy(cb_struct->last_data[count].lcr_rate_field, cb_struct->temp_datas[j].lcr_rate_field);
+					}
+					if (cb_struct->temp_datas[j].lcr_lead_strip) {
+						strcpy(cb_struct->last_data[count].lcr_lead_strip, cb_struct->temp_datas[j].lcr_lead_strip);
+					}
+					if (cb_struct->temp_datas[j].lcr_trail_strip) {
+						strcpy(cb_struct->last_data[count].lcr_trail_strip, cb_struct->temp_datas[j].lcr_trail_strip);
+					}
+					if (cb_struct->temp_datas[j].lcr_prefix) {
+						strcpy(cb_struct->last_data[count].lcr_prefix, cb_struct->temp_datas[j].lcr_prefix);
+					}
+					if (cb_struct->temp_datas[j].lcr_suffix) {
+						strcpy(cb_struct->last_data[count].lcr_suffix, cb_struct->temp_datas[j].lcr_suffix);
+					}
+					if (cb_struct->temp_datas[j].lcr_cid) {
+						strcpy(cb_struct->last_data[count].lcr_cid, cb_struct->temp_datas[j].lcr_cid);
+					}
+					if (cb_struct->temp_datas[j].nibble_rate) {
+						strcpy(cb_struct->last_data[count].nibble_rate, cb_struct->temp_datas[j].nibble_rate);
+					}
+					if (cb_struct->temp_datas[j].nibble_increment) {
+						strcpy(cb_struct->last_data[count].nibble_increment, cb_struct->temp_datas[j].nibble_increment);
+					}
+					if (cb_struct->temp_datas[j].lcr_carrier_peer) {
+						strcpy(cb_struct->last_data[count].lcr_carrier_peer, cb_struct->temp_datas[j].lcr_carrier_peer);
+					}
+					if (cb_struct->temp_datas[j].lcr_gw_prefix) {
+						strcpy(cb_struct->last_data[count].lcr_gw_prefix, cb_struct->temp_datas[j].lcr_gw_prefix);
+					}
+					if (cb_struct->temp_datas[j].lcr_gw_suffix) {
+						strcpy(cb_struct->last_data[count].lcr_gw_suffix, cb_struct->temp_datas[j].lcr_gw_suffix);
+					}
+					if (cb_struct->temp_datas[j].lcr_codec) {
+						strcpy(cb_struct->last_data[count].lcr_codec, cb_struct->temp_datas[j].lcr_codec);
+					}
+					if (cb_struct->temp_datas[j].lcr_limit_id) {
+						strcpy(cb_struct->last_data[count].lcr_limit_id, cb_struct->temp_datas[j].lcr_limit_id);
+					}
+					if (cb_struct->temp_datas[j].lcr_limit_max) {
+						strcpy(cb_struct->last_data[count].lcr_limit_max, cb_struct->temp_datas[j].lcr_limit_max);
+					}
+					if (cb_struct->temp_datas[j].carrier_gateway_channels_limit) {
+						strcpy(cb_struct->last_data[count].carrier_gateway_channels_limit, cb_struct->temp_datas[j].carrier_gateway_channels_limit);
+					}
+					if (cb_struct->carriers[i].lcr_carrier_name) {
+						strcpy(cb_struct->last_data[count].lcr_carrier_name, cb_struct->carriers[i].lcr_carrier_name);
+					}
+					count++;
+					cb_struct->last_datas_count = count;
+				}
+			}
+		}
+
+		for (i = 0; i < cb_struct->last_datas_count; i++) {
+			status = route_add_callback_from_data(cb_struct, cb_struct->last_data[i]);
+			if (status) break;
+		}
 	}
-
-	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(cb_struct->session), SWITCH_LOG_DEBUG, "SQL: %s\n", (char *)sql_stream.data);
-
-	lookup_status = lcr_execute_sql_callback((char *)sql_stream.data, route_add_callback, cb_struct);
-
-	switch_safe_free(sql_stream.data);
+	switch_safe_free(cb_struct->carriers);
+	switch_safe_free(cb_struct->rates);
+	switch_safe_free(cb_struct->gateways);
+	switch_safe_free(cb_struct->gateway_limits);
+	switch_safe_free(cb_struct->temp_datas);
+	switch_safe_free(cb_struct->last_data);
+	
 	switch_core_hash_destroy(&cb_struct->dedup_hash);
 
 	return lookup_status;
@@ -1066,13 +2045,13 @@ static switch_status_t lcr_load_config()
 						  , "dsn is \"%s\"\n"
 						  , globals.odbc_dsn
 						  );
-		if (!(dbh = lcr_get_db_handle())) {
+		if (!(dbh = lcr_get_db_handle(globals.odbc_dsn))) {
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "Cannot Open ODBC Database!\n");
 			switch_goto_status(SWITCH_STATUS_FALSE, done);
 		}
 	}
 
-	if (set_db_random() == SWITCH_TRUE) {
+	if (set_db_random(globals.odbc_dsn) == SWITCH_TRUE) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "Database RANDOM function set to %s\n", db_random);
 	} else {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to determine database RANDOM function\n");
@@ -1091,19 +2070,31 @@ static switch_status_t lcr_load_config()
 			char *info_in_headers = NULL;
 			char *enable_sip_redir = NULL;
 			char *id_s = NULL;
-			char *custom_sql = NULL;
+			char *custom_sql[SWITCH_MAX_CUSTOM_SQL];
+			char *custom_odbc[SWITCH_MAX_CUSTOM_SQL];
+			char *sql_purpose[SWITCH_MAX_CUSTOM_SQL];
+			uint32_t custom_sql_count = 0;
 			char *export_fields = NULL;
 			char *limit_type = NULL;
 			int argc, x = 0;
 			char *argv[32] = { 0 };
+			switch_bool_t total_custom_sql_has_var;
 
+			for (uint32_t i = 0; i < SWITCH_MAX_CUSTOM_SQL; i++) {
+				custom_sql[i] = NULL;
+				custom_odbc[i] = NULL;
+				sql_purpose[i] = NULL;
+			}
+			
 			SWITCH_STANDARD_STREAM(order_by);
 
 			for (param = switch_xml_child(x_profile, "param"); param; param = param->next) {
-				char *var, *val;
+				char *var, *val, *odbc, *purpose;
 
 				var = (char *) switch_xml_attr_soft(param, "name");
 				val = (char *) switch_xml_attr_soft(param, "value");
+				odbc = (char *) switch_xml_attr_soft(param, "custom_odbc");
+				purpose = (char *) switch_xml_attr_soft(param, "sql_purpose");
 
 				if (!strcasecmp(var, "order_by")  && !zstr(val)) {
 					thisorder = &order_by;
@@ -1137,7 +2128,40 @@ static switch_status_t lcr_load_config()
 				} else if (!strcasecmp(var, "id") && !zstr(val)) {
 					id_s = val;
 				} else if (!strcasecmp(var, "custom_sql") && !zstr(val)) {
-					custom_sql = val;
+					if (custom_sql_count < SWITCH_MAX_CUSTOM_SQL)
+					{
+						custom_sql[custom_sql_count] = val;
+						if (!zstr(odbc)) {
+							custom_odbc[custom_sql_count] = odbc;
+							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "odbc_dsn is %s\n", odbc);
+							if (!(dbh = lcr_get_db_handle(odbc))) {
+								switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "Cannot Open ODBC Database!\n");
+								switch_goto_status(SWITCH_STATUS_FALSE, done);
+							}
+							if (set_db_random(odbc) == SWITCH_TRUE) {
+								switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "Database RANDOM function set to %s\n", db_random);
+							}
+							else {
+								switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to determine database RANDOM function\n");
+							};
+						}
+						else{
+							custom_odbc[custom_sql_count] = globals.odbc_dsn;
+						}
+						
+						if (!zstr(purpose)){
+							sql_purpose[custom_sql_count] = purpose;
+						}
+						else{
+							sql_purpose[custom_sql_count] = "total";
+						}
+
+						custom_sql_count++;
+					}
+					else
+					{
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Max custom sql count is %d\n", SWITCH_MAX_CUSTOM_SQL);
+					}
 				} else if (!strcasecmp(var, "reorder_by_rate") && !zstr(val)) {
 					reorder_by_rate = val;
 				} else if (!strcasecmp(var, "info_in_headers") && !zstr(val)) {
@@ -1176,14 +2200,14 @@ static switch_status_t lcr_load_config()
 
 				/* SWITCH_STANDARD_STREAM doesn't use pools.  but we only have to free sql_stream.data */
 				SWITCH_STANDARD_STREAM(sql_stream);
-				if (zstr(custom_sql)) {
+				if (custom_sql_count == 0) {
 					/* use default sql */
 
 					/* Checking for codec field, adding if needed */
-					if (db_check("SELECT codec FROM carrier_gateway LIMIT 1") == SWITCH_TRUE) {
+					if (db_check("SELECT codec FROM carrier_gateway LIMIT 1", globals.odbc_dsn) == SWITCH_TRUE) {
 						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "codec field defined.\n");
 					} else {
-						if (db_check("ALTER TABLE carrier_gateway add codec varchar(255);") == SWITCH_TRUE) {
+						if (db_check("ALTER TABLE carrier_gateway add codec varchar(255);", globals.odbc_dsn) == SWITCH_TRUE) {
 							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "adding codec field your lcr carrier_gateway database schema.\n");
 						} else {
 							switch_goto_status(SWITCH_STATUS_FALSE, done);
@@ -1191,18 +2215,18 @@ static switch_status_t lcr_load_config()
 					}
 
 					/* Checking for cid field, adding if needed */
-					if (db_check("SELECT cid FROM lcr LIMIT 1") == SWITCH_TRUE) {
+					if (db_check("SELECT cid FROM lcr LIMIT 1", globals.odbc_dsn) == SWITCH_TRUE) {
 						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "cid field defined.\n");
 					} else {
-						if (db_check("ALTER TABLE lcr add cid varchar(32);") == SWITCH_TRUE) {
+						if (db_check("ALTER TABLE lcr add cid varchar(32);", globals.odbc_dsn) == SWITCH_TRUE) {
 							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "adding cid field to your lcr database schema.\n");
 						} else {
 							switch_goto_status(SWITCH_STATUS_FALSE, done);
 						}
 					}
 
-					if (db_check("SELECT lrn FROM lcr LIMIT 1") != SWITCH_TRUE) {
-						if (db_check("ALTER TABLE lcr ADD lrn BOOLEAN NOT NULL DEFAULT false")) {
+					if (db_check("SELECT lrn FROM lcr LIMIT 1", globals.odbc_dsn) != SWITCH_TRUE) {
+						if (db_check("ALTER TABLE lcr ADD lrn BOOLEAN NOT NULL DEFAULT false", globals.odbc_dsn)) {
 							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "adding lrn field to your lcr database schema.\n");
 						} else {
 							switch_goto_status(SWITCH_STATUS_FALSE, done);
@@ -1232,38 +2256,47 @@ static switch_status_t lcr_load_config()
 					}
 					sql_stream.write_function(&sql_stream, ";");
 
-					custom_sql = sql_stream.data;
+					custom_sql[0] = sql_stream.data;
+					sql_purpose[0] = "total";
+					custom_sql_count++;
 				}
 
 
-				profile->profile_has_intralata = db_check("SELECT intralata_rate FROM lcr LIMIT 1");
+				profile->profile_has_intralata = db_check("SELECT intralata_rate FROM lcr LIMIT 1", globals.odbc_dsn);
 				if (profile->profile_has_intralata != SWITCH_TRUE) {
 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
 									  "no \"intralata_rate\" field found in the \"lcr\" table, routing by intralata rates will be disabled until the field is added and mod_lcr is reloaded\n"
 									  );
 				}
-				profile->profile_has_intrastate = db_check("SELECT intrastate_rate FROM lcr LIMIT 1");
+				profile->profile_has_intrastate = db_check("SELECT intrastate_rate FROM lcr LIMIT 1", globals.odbc_dsn);
 				if (profile->profile_has_intrastate != SWITCH_TRUE) {
 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
 									  "no \"intrastate_rate\" field found in the \"lcr\" table, routing by intrastate rates will be disabled until the field is added and mod_lcr is reloaded\n"
 									  );
 				}
 
-				profile->profile_has_npanxx = db_check("SELECT npa, nxx, state FROM npa_nxx_company_ocn LIMIT 1");
+				profile->profile_has_npanxx = db_check("SELECT npa, nxx, state FROM npa_nxx_company_ocn LIMIT 1", globals.odbc_dsn);
 				if (profile->profile_has_npanxx != SWITCH_TRUE) {
 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
 									  "no \"npa_nxx_company_ocn\" table found in the \"lcr\" database, automatic intrastate detection will be disabled until the table is added and mod_lcr is reloaded\n"
 									  );
 				}
 
-				if (switch_string_var_check_const(custom_sql) || switch_string_has_escaped_data(custom_sql)) {
-					profile->custom_sql_has_vars = SWITCH_TRUE;
-				}
-				if (strstr(custom_sql, "%")) {
-					profile->custom_sql_has_percent = SWITCH_TRUE;
-				}
-				profile->custom_sql = switch_core_strdup(globals.pool, (char *)custom_sql);
+				profile->custom_sql_count = custom_sql_count;
 
+				for (uint32_t i = 0; i < custom_sql_count; i++)
+				{
+					if (switch_string_var_check_const(custom_sql[i]) || switch_string_has_escaped_data(custom_sql[i])) {
+						profile->custom_sql_has_vars[i] = SWITCH_TRUE;
+					}
+					if (strstr(custom_sql[i], "%")) {
+						profile->custom_sql_has_percent[i] = SWITCH_TRUE;
+					}
+					profile->custom_sql[i] = switch_core_strdup(globals.pool, (char *)custom_sql[i]);
+					profile->custom_odbc[i] = switch_core_strdup(globals.pool, (char *)custom_odbc[i]);
+					profile->sql_purpose[i] = switch_core_strdup(globals.pool, (char *)sql_purpose[i]);
+				}
+								
 				if (!zstr(reorder_by_rate)) {
 					profile->reorder_by_rate = switch_true(reorder_by_rate);
 				}
@@ -1310,7 +2343,11 @@ static switch_status_t lcr_load_config()
 				switch_core_hash_insert(globals.profile_hash, profile->name, profile);
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "Loaded lcr profile %s.\n", profile->name);
 				/* test the profile */
-				if (profile->custom_sql_has_vars) {
+				for (uint32_t i = 0; i < profile->custom_sql_count; i++)
+					if (profile->custom_sql_has_vars[i] == SWITCH_TRUE)
+						total_custom_sql_has_var = SWITCH_TRUE;
+
+				if (total_custom_sql_has_var) {
 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "custom_sql has channel vars, skipping verification and assuming valid profile: %s.\n", profile->name);
 					if (!strcasecmp(profile->name, "default")) {
 						globals.default_profile = profile;
@@ -1816,7 +2853,9 @@ SWITCH_STANDARD_API(dialplan_lcr_function)
 	switch_xml_t event_xml        = NULL;
 	int rowcount                  = 0;
 	char *data                    = NULL;
-
+// 	char *temptable 		= NULL;
+// 	switch_cache_db_handle_t *dbh = NULL;
+	
 	if (zstr(cmd)) {
 		goto usage;
 	}
@@ -1883,7 +2922,8 @@ SWITCH_STANDARD_API(dialplan_lcr_function)
 			stream->write_function(stream, "-ERR Unknown profile: %s\n", lcr_profile);
 			goto end;
 		}
-
+		
+		
 		lookup_status = lcr_do_lookup(&cb_struct);
 
 		if (cb_struct.head != NULL) {
@@ -1959,7 +2999,7 @@ SWITCH_STANDARD_API(dialplan_lcr_function)
 
 				if (current->limit_realm && current->limit_id) {
 					char *str = NULL;
-					str = switch_core_sprintf(pool, "%s %s %d", current->limit_realm, current->limit_id, current->limit_max);
+ 					str = switch_core_sprintf(pool, "%s %s %d", current->limit_realm, current->limit_id, current->limit_max);
 
 					write_data(stream, as_xml, "limit", str, 2, (int)maximum_lengths.limit);
 				} else {
@@ -1996,6 +3036,7 @@ SWITCH_STANDARD_API(dialplan_lcr_function)
 				stream->write_function(stream, "-ERR Error looking up routes\n");
 			}
 		}
+		
 	}
 
 end:
@@ -2006,6 +3047,7 @@ end:
 			switch_core_destroy_memory_pool(&pool);
 		}
 	}
+		       
 	return SWITCH_STATUS_SUCCESS;
 usage:
 	stream->write_function(stream, "USAGE: %s\n", LCR_SYNTAX);
@@ -2038,13 +3080,18 @@ SWITCH_STANDARD_API(dialplan_lcr_admin_function)
 				profile = (profile_t *) val;
 
 				stream->write_function(stream, "Name:\t\t%s\n", profile->name);
-				if (zstr(profile->custom_sql)) {
+				if (profile->custom_sql_count == 0) {
 					stream->write_function(stream, " ID:\t\t%d\n", profile->id);
 					stream->write_function(stream, " order by:\t%s\n", profile->order_by);
 				} else {
-					stream->write_function(stream, " custom sql:\t%s\n", profile->custom_sql);
-					stream->write_function(stream, " has %%:\t\t%s\n", profile->custom_sql_has_percent ? "true" : "false");
-					stream->write_function(stream, " has vars:\t%s\n", profile->custom_sql_has_vars ? "true" : "false");
+					for (uint32_t i = 0; i < profile->custom_sql_count; i++)
+					{
+						stream->write_function(stream, " custom sql:\t%s\n", profile->custom_sql[i]);
+						stream->write_function(stream, " custom odbc dsn:\t%s\n", profile->custom_odbc[i]);
+						stream->write_function(stream, " sql purpose:\t%s\n", profile->sql_purpose[i]);
+						stream->write_function(stream, " has %%:\t\t%s\n", profile->custom_sql_has_percent[i] ? "true" : "false");
+						stream->write_function(stream, " has vars:\t%s\n", profile->custom_sql_has_vars[i] ? "true" : "false");
+					}
 				}
 				stream->write_function(stream, " has intrastate:\t%s\n", profile->profile_has_intrastate ? "true" : "false");
 				stream->write_function(stream, " has intralata:\t%s\n", profile->profile_has_intralata ? "true" : "false");
@@ -2077,11 +3124,11 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_lcr_load)
 	switch_api_interface_t *dialplan_lcr_api_admin_interface;
 	switch_application_interface_t *app_interface;
 	switch_dialplan_interface_t *dp_interface;
-
+	
 	*module_interface = switch_loadable_module_create_module_interface(pool, modname);
 
 	globals.pool = pool;
-
+	
 	if (switch_mutex_init(&globals.mutex, SWITCH_MUTEX_NESTED, globals.pool) != SWITCH_STATUS_SUCCESS) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "failed to initialize mutex\n");
 	}
@@ -2089,7 +3136,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_lcr_load)
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to load lcr config file\n");
 		return SWITCH_STATUS_FALSE;
 	}
-
+	
 	SWITCH_ADD_API(dialplan_lcr_api_interface, "lcr", "Least Cost Routing Module", dialplan_lcr_function, LCR_SYNTAX);
 	SWITCH_ADD_API(dialplan_lcr_api_admin_interface, "lcr_admin", "Least Cost Routing Module Admin", dialplan_lcr_admin_function, LCR_ADMIN_SYNTAX);
 	SWITCH_ADD_APP(app_interface, "lcr", "Perform an LCR lookup", "Perform an LCR lookup",
