@@ -28,7 +28,7 @@
  * Contributor(s):
  * Darren Schreiber <d@d-man.org>
  * Rupa Schomaker <rupa@rupa.com>
- * Emmanuel Schmidbauer <eschmidbauer@gmail.com>
+ * Emmanuel Schmidbauer <e.schmidbauer@gmail.com>
  *
  * mod_nibblebill.c - Nibble Billing
  * Purpose is to allow real-time debiting of credit or cash from a database while calls are in progress. I had the following goals:
@@ -50,7 +50,6 @@
  */
 
 #include <switch.h>
-#include <math.h>
 
 typedef struct {
 	switch_time_t lastts;		/* Last time we did any billing */
@@ -60,7 +59,6 @@ typedef struct {
 	double bill_adjustments;	/* Adjustments to make to the next billing, based on pause/resume events */
 
 	int lowbal_action_executed;	/* Set to 1 once lowbal_action has been executed */
-	int final_bill_done;		/* Set to 1 one the final rounding has been done on a call to prevent spurious rebills on hangup */
 } nibble_data_t;
 
 
@@ -101,9 +99,18 @@ static struct {
 	/* Database settings */
 	char *dbname;
 	char *odbc_dsn;
-	char *db_table;
+	char *account_db_table;
+	char *carrier_db_table;
 	char *db_column_cash;
+	char *db_column_call_duration;
+	char *db_column_call_duration_monthly;
+	char *db_column_call_count;
+	char *db_column_call_count_monthly;
+	char *db_column_cash_balance;
+	char *db_column_cash_monthly;
 	char *db_column_account;
+	char *db_column_carrier;
+	char *db_column_carrier_balance;
 	char *custom_sql_save;
 	char *custom_sql_lookup;
 	switch_odbc_handle_t *master_odbc;
@@ -124,9 +131,18 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_nibblebill_shutdown);
 SWITCH_MODULE_DEFINITION(mod_nibblebill, mod_nibblebill_load, mod_nibblebill_shutdown, NULL);
 
 /* String setting functions */
-SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_table, globals.db_table);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_account_db_table, globals.account_db_table);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_carrier_db_table, globals.carrier_db_table);
 SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_cash, globals.db_column_cash);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_call_duration, globals.db_column_call_duration);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_call_duration_monthly, globals.db_column_call_duration_monthly);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_call_count, globals.db_column_call_count);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_call_count_monthly, globals.db_column_call_count_monthly);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_cash_balance, globals.db_column_cash_balance);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_cash_monthly, globals.db_column_cash_monthly);
 SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_account, globals.db_column_account);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_carrier_balance, globals.db_column_carrier_balance);
+SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_db_column_carrier, globals.db_column_carrier);
 SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_custom_sql_save, globals.custom_sql_save);
 SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_custom_sql_lookup, globals.custom_sql_lookup);
 SWITCH_DECLARE_GLOBAL_STRING_FUNC(set_global_percall_action, globals.percall_action);
@@ -229,12 +245,30 @@ static switch_status_t nibblebill_load_config(void)
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "this nibblebill param(db_dsn) is deprecated and will be removed in 1.4 - odbc_dsn is %s\n", val);
 				switch_safe_free(globals.odbc_dsn);
 				globals.odbc_dsn = strdup(val);
-			} else if (!strcasecmp(var, "db_table")) {
-				set_global_db_table(val);
+			} else if (!strcasecmp(var, "account_db_table")) {
+				set_global_account_db_table(val);
+			} else if (!strcasecmp(var, "carrier_db_table")) {
+				set_global_carrier_db_table(val);
 			} else if (!strcasecmp(var, "db_column_cash")) {
 				set_global_db_column_cash(val);
+			} else if (!strcasecmp(var, "db_column_call_duration")) {
+				set_global_db_column_call_duration(val);
+			} else if (!strcasecmp(var, "db_column_call_duration_monthly")) {
+				set_global_db_column_call_duration_monthly(val);
+			} else if (!strcasecmp(var, "db_column_cash_balance")) {
+                                set_global_db_column_cash_balance(val);
+			} else if (!strcasecmp(var, "db_column_call_count")) {
+                                set_global_db_column_call_count(val);
+			} else if (!strcasecmp(var, "db_column_call_count_monthly")) {
+                                set_global_db_column_call_count_monthly(val);
+                        } else if (!strcasecmp(var, "db_column_cash_monthly")) {
+                                set_global_db_column_cash_monthly(val);
 			} else if (!strcasecmp(var, "db_column_account")) {
 				set_global_db_column_account(val);
+			} else if (!strcasecmp(var, "db_column_carrier_balance")) {
+				set_global_db_column_carrier_balance(val);
+			} else if (!strcasecmp(var, "db_column_carrier")) {
+				set_global_db_column_carrier(val);
 			} else if (!strcasecmp(var, "custom_sql_save")) {
 				set_global_custom_sql_save(val);
 			} else if (!strcasecmp(var, "custom_sql_lookup")) {
@@ -357,8 +391,8 @@ static void transfer_call(switch_core_session_t *session, char *destination)
 			/* Make sure we are in the media path on B leg */
 			switch_ivr_media(uuid, SMF_REBRIDGE);
 
-			/* Execute extension on the B leg */
-			switch_core_session_execute_exten(b_session, argv[0], argv[1], argv[2]);
+			/* Transfer the B leg */
+			switch_ivr_session_transfer(b_session, argv[0], argv[1], argv[2]);
 			switch_core_session_rwunlock(b_session);
 		}
 	}
@@ -367,16 +401,21 @@ static void transfer_call(switch_core_session_t *session, char *destination)
 	uuid = switch_core_session_get_uuid(session);
 	switch_ivr_media(uuid, SMF_REBRIDGE);
 
-	/* Execute extension on the A leg */
-	switch_core_session_execute_exten(session, argv[0], argv[1], argv[2]);
+	/* Transfer the A leg */
+	switch_ivr_session_transfer(session, argv[0], argv[1], argv[2]);
 	free(mydup);
 }
 
 /* At this time, billing never succeeds if you don't have a database. */
-static switch_bool_t bill_event(double billamount, const char *billaccount, switch_channel_t *channel)
+static switch_bool_t bill_event(double billamount, float billtime, const char *billaccount, int calltimes,switch_channel_t *channel)
 {
 	char *sql = NULL, *dsql = NULL;
+	const char *lcr_rate, *billincrement, *lcr_carrier;
 	switch_bool_t status = SWITCH_FALSE;
+
+	lcr_rate = switch_channel_get_variable(channel, "lcr_rate");
+	billincrement = switch_channel_get_variable(channel, "nibble_increment");
+	lcr_carrier = switch_channel_get_variable(channel, "lcr_carrier");
 
 	if (globals.custom_sql_save) {
 		if (switch_string_var_check_const(globals.custom_sql_save) || switch_string_has_escaped_data(globals.custom_sql_save)) {
@@ -387,8 +426,21 @@ static switch_bool_t bill_event(double billamount, const char *billaccount, swit
 			sql = globals.custom_sql_save;
 		}
 	} else {
-		sql = dsql = switch_mprintf("UPDATE %q SET %q=%q- %f WHERE %q='%q'", globals.db_table, globals.db_column_cash,
-									globals.db_column_cash, billamount, globals.db_column_account, billaccount);
+
+		sql = dsql = switch_mprintf("UPDATE %s SET %s=%s-%f, %s=%s-%f, %s=%s-%f, %s=%s+%f, %s=%s+%f, %s=%s+%d, %s=%s+%d WHERE %s='%s'; UPDATE %s SET %s=%s-%f WHERE %s='%s';",
+							globals.account_db_table,
+							globals.db_column_cash, globals.db_column_cash, billamount,
+							globals.db_column_cash_balance, globals.db_column_cash_balance, billamount,
+							globals.db_column_cash_monthly, globals.db_column_cash_monthly, billamount,
+							globals.db_column_call_duration, globals.db_column_call_duration, (billtime/60000000),
+							globals.db_column_call_duration_monthly, globals.db_column_call_duration_monthly, (billtime/60000000),
+							globals.db_column_call_count, globals.db_column_call_count, calltimes,
+							globals.db_column_call_count_monthly, globals.db_column_call_count_monthly, calltimes,
+							globals.db_column_account, billaccount,
+							globals.carrier_db_table,
+							globals.db_column_carrier_balance, globals.db_column_carrier_balance, (atof(lcr_rate) * atol(billincrement) / 60),
+							globals.db_column_carrier, lcr_carrier
+						);
 		
 	}
 
@@ -415,8 +467,8 @@ static double get_balance(const char *billaccount, switch_channel_t *channel)
 			sql = globals.custom_sql_lookup;
 		}
 	} else {
-		sql = dsql = switch_mprintf("SELECT %q AS nibble_balance FROM %q WHERE %q='%q'", 
-									globals.db_column_cash, globals.db_table, globals.db_column_account, billaccount);
+		sql = dsql = switch_mprintf("SELECT %s AS nibble_balance FROM %s WHERE %s='%s'", 
+									globals.db_column_cash, globals.account_db_table, globals.db_column_account, billaccount);
 	}
 
 	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Doing lookup query\n[%s]\n", sql);
@@ -451,17 +503,13 @@ static switch_status_t do_billing(switch_core_session_t *session)
 	switch_size_t retsize;
 	switch_time_exp_t tm;
 	const char *billrate;
+	double billtime;
 	const char *billincrement;
 	const char *billaccount;
 	double nobal_amt = globals.nobal_amt;
 	double lowbal_amt = globals.lowbal_amt;
 	double balance;
-	double minimum_charge = 0;
-	double rounding_factor = 0;
-	double excess = 0;
-	double rounded_billed = 0;
-	int billsecs = 0;
-	double balance_check = 0;
+	int calltimes = 0;
 
 	if (!session) {
 		/* Why are we here? */
@@ -488,16 +536,6 @@ static switch_status_t do_billing(switch_core_session_t *session)
 		lowbal_amt = atof(switch_channel_get_variable(channel, "lowbal_amt"));
 	}
 	
-	if (!zstr(switch_channel_get_variable(channel, "nibble_rounding"))) {
-		rounding_factor = pow(10, atof(switch_channel_get_variable(channel, "nibble_rounding")));
-	}
-
-	if (!zstr(switch_channel_get_variable(channel, "nibble_minimum"))) {
-		minimum_charge = atof(switch_channel_get_variable(channel, "nibble_minimum"));
-	}
-
-
-
 	/* Return if there's no billing information on this session */
 	if (!billrate || !billaccount) {
 		return SWITCH_STATUS_SUCCESS;
@@ -519,9 +557,8 @@ static switch_status_t do_billing(switch_core_session_t *session)
 
 		/* See if this person has enough money left to continue the call */
 		balance = get_balance(billaccount, channel);
-		balance_check = balance - minimum_charge;
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Comparing %f to hangup balance of %f, taking into account minimum charge of %f\n", balance, nobal_amt, minimum_charge);
-		if (balance_check <= nobal_amt) {
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Comparing %f to hangup balance of %f\n", balance, nobal_amt);
+		if (balance <= nobal_amt) {
 			/* Not enough money - reroute call to nobal location */
 			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Balance of %f fell below allowed amount of %f! (Account %s)\n",
 							  balance, nobal_amt, billaccount);
@@ -549,12 +586,6 @@ static switch_status_t do_billing(switch_core_session_t *session)
 		return SWITCH_STATUS_SUCCESS;
 	}
 
-	if (nibble_data && nibble_data->final_bill_done) {
-		switch_mutex_unlock(globals.mutex);
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Received heartbeat, but final bill has been committed - ignoring\n");
-		return SWITCH_STATUS_SUCCESS;
-	}
-
 	/* Have we done any billing on this channel yet? If no, set up vars for doing so */
 	if (!nibble_data) {
 		nibble_data = switch_core_session_alloc(session, sizeof(*nibble_data));
@@ -563,68 +594,52 @@ static switch_status_t do_billing(switch_core_session_t *session)
 		/* Setup new billing data (based on call answer time, in case this module started late with active calls) */
 		nibble_data->lastts = profile->times->answered;	/* Set the initial answer time to match when the call was really answered */
 		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "Beginning new billing on %s\n", uuid);
+		calltimes = 1;
 	}
 
 	switch_time_exp_lt(&tm, nibble_data->lastts);
 	switch_strftime_nocheck(date, &retsize, sizeof(date), "%Y-%m-%d %T", &tm);
 
-	billsecs = (int) ((ts - nibble_data->lastts) / 1000000);
-
 	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "%d seconds passed since last bill time of %s\n",
-					  billsecs, date);
-
+					  (int) ((ts - nibble_data->lastts) / 1000000), date);
+	
 	if ((ts - nibble_data->lastts) >= 0) {
 		/* If billincrement is set we bill by it and not by time elapsed */
+				
 		if (!(switch_strlen_zero(billincrement))) {
 			switch_time_t chargedunits = (ts - nibble_data->lastts) / 1000000 <= atol(billincrement) ? atol(billincrement) * 1000000 : (switch_time_t)(ceil((ts - nibble_data->lastts) / (atol(billincrement) * 1000000.0))) * atol(billincrement) * 1000000;
 			billamount = (atof(billrate) / 1000000 / 60) * chargedunits - nibble_data->bill_adjustments;
 			/* Account for the prepaid amount */
 			nibble_data->lastts += chargedunits;
+			billtime = (float)chargedunits;
 		} else {		
 			/* Convert billrate into microseconds and multiply by # of microseconds that have passed since last *successful* bill */
 			billamount = (atof(billrate) / 1000000 / 60) * ((ts - nibble_data->lastts)) - nibble_data->bill_adjustments;
+			billtime = (float)(ts - nibble_data->lastts) / 1000000 / 60;
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "ts - last is %f\n", (float)(ts - nibble_data->lastts)/1000000/60);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "billtime is %f\n", billtime);
 			/* Update the last time we billed */
 			nibble_data->lastts = ts;
 		}
-
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Billing $%f to %s (Call: %s / %f so far)\n", billamount, billaccount,
-						  uuid, nibble_data->total);
-
+		
+		
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Billing $%f to %s (Call: %s / %f so far during %f seconds)\n", billamount, billaccount,
+						  uuid, nibble_data->total, (billtime / 1000000));
+		
 		/* DO ODBC BILLING HERE and reset counters if it's successful! */
-		if (bill_event(billamount, billaccount, channel) == SWITCH_TRUE) {
+		if (bill_event(billamount, billtime, billaccount, calltimes, channel) == SWITCH_TRUE) {
 			/* Increment total cost */
 			nibble_data->total += billamount;
 
 			/* Reset manual billing adjustments from pausing */
 			nibble_data->bill_adjustments = 0;
+			
+			calltimes = 0;
 
 			/* Update channel variable with current billing */
 			switch_channel_set_variable_printf(channel, "nibble_total_billed", "%f", nibble_data->total);
 		} else {
 			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_CRIT, "Failed to log to database!\n");
-		}
-
-		/* Do Rounding and minimum charge during hangup */
-		if (switch_channel_get_state(channel) == CS_HANGUP) {
-			/* we're going to make an assumption that final billing is done here. So we'll see how this goes. */
-			/* round total billed up as required */
-
-			rounded_billed = rounding_factor > 0 ? ceilf((float)(nibble_data->total * rounding_factor)) / rounding_factor : nibble_data->total;
-
-			if (rounded_billed < minimum_charge)
-			{
-				excess = minimum_charge - nibble_data->total;
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "Applying minimum charge of %f (%f excess)\n", minimum_charge, excess);
-			}
-			else if (nibble_data->total < rounded_billed)
-			{
-				excess = rounded_billed - nibble_data->total;
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "Rounding to precision %f, total %f (%f excess)\n", rounding_factor, rounded_billed, excess);
-			}
-			bill_event(excess, billaccount, channel);
-			nibble_data->total += excess;
-			switch_channel_set_variable_printf(channel, "nibble_total_billed", "%f", nibble_data->total);
-			nibble_data->final_bill_done = 1;
 		}
 	} else {
 		if (switch_strlen_zero(billincrement))
@@ -878,7 +893,7 @@ static void nibblebill_adjust(switch_core_session_t *session, double amount)
 	}
 
 	/* Add or remove amount from adjusted billing here. Note, we bill the OPPOSITE */
-	if (bill_event(-amount, billaccount, channel) == SWITCH_TRUE) {
+	if (bill_event(-amount,0, billaccount, 0, channel) == SWITCH_TRUE) {
 		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "Recorded adjustment to %s for $%f\n", billaccount, amount);
 	} else {
 		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "Failed to record adjustment to %s for $%f\n", billaccount, amount);
@@ -1001,11 +1016,10 @@ static switch_status_t process_hangup(switch_core_session_t *session)
 	do_billing(session);
 
 	billaccount = switch_channel_get_variable(channel, globals.var_name_account);
-
 	if (billaccount) {
 		switch_channel_set_variable_printf(channel, "nibble_current_balance", "%f", get_balance(billaccount, channel));
-	}
-
+	}			
+	
 	return SWITCH_STATUS_SUCCESS;
 }
 
@@ -1075,8 +1089,15 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_nibblebill_shutdown)
 	
 	switch_safe_free(globals.dbname);
 	switch_safe_free(globals.odbc_dsn);
-	switch_safe_free(globals.db_table);
+	switch_safe_free(globals.account_db_table);
+	switch_safe_free(globals.carrier_db_table);
 	switch_safe_free(globals.db_column_cash);
+	switch_safe_free(globals.db_column_call_duration);
+	switch_safe_free(globals.db_column_call_duration_monthly);
+	switch_safe_free(globals.db_column_call_count);
+	switch_safe_free(globals.db_column_call_count_monthly);
+	switch_safe_free(globals.db_column_cash_monthly);
+	switch_safe_free(globals.db_column_cash_balance);
 	switch_safe_free(globals.db_column_account);
 	switch_safe_free(globals.custom_sql_save);
 	switch_safe_free(globals.custom_sql_lookup);
